@@ -4,7 +4,7 @@ namespace BestStoreApi.Models
 {
     public class Contact
     {
-        public int id { get; set; }
+        public int Id { get; set; }
         [MaxLength(100)]
         public string FirstName { get; set; }
         [MaxLength(100)]
@@ -14,7 +14,7 @@ namespace BestStoreApi.Models
         [MaxLength(15)]
         public string Phone { get; set; }
         [MaxLength(100)]
-        public string Subject { get; set; }
+        public required Subject Subject { get; set; }
         public string Message { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }

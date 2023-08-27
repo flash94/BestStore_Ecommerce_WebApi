@@ -12,8 +12,7 @@ namespace BestStoreApi.Models.DTO
         public string Email { get; set; }
         [MaxLength(15)]
         public string? Phone { get; set; }
-        [Required,MaxLength(100)]
-        public string Subject { get; set; }
+        public int SubjectId { get; set; }
         [Required,MinLength(20),MaxLength(4000)]
         public string Message { get; set; }
     }
