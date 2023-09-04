@@ -26,10 +26,37 @@ namespace BestStoreApi.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetContacts()
+        public IActionResult GetContacts(int? page)
         {
-            var contacts = context.Contacts.Include(c => c.Subject).ToList();
-            return Ok(contacts);
+            if(page == null || page < 1)
+            {
+                page = 1;
+            }
+
+            int pageSize = 5;
+            int totalPages = 0;
+
+            decimal count = context.Contacts.Count();
+            totalPages = (int)Math.Ceiling(count/pageSize);
+
+            
+            var contacts = context.Contacts.
+                Include(c => c.Subject)
+                .OrderByDescending(c => c.Id)
+                .Skip((int)(page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            //create anonymous object
+            var response = new
+            {
+                Contacts = contacts,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                Page = page
+            };
+
+            return Ok(response);
         }
 
         [HttpGet("{id}")]
