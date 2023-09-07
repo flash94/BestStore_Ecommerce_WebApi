@@ -1,6 +1,7 @@
 ﻿using BestStoreApi.Models;
 using BestStoreApi.Models.DTO;
 using BestStoreApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,6 +30,7 @@ namespace BestStoreApi.Controllers
         {
             return Ok(listCategories);
         }
+
 
         [HttpGet]
         public IActionResult GetProducts(string? search, string? category, 
@@ -166,6 +168,7 @@ namespace BestStoreApi.Controllers
             return Ok(product);
         }
 
+        [Authorize(Roles = "admin")]
         [HttpPost]
         public IActionResult CreateProduct([FromForm]ProductDto productDto)
         {
@@ -209,6 +212,7 @@ namespace BestStoreApi.Controllers
             return Ok(product);
         }
 
+        [Authorize(Roles = "admin")]
         [HttpPut("{id}")]
         public IActionResult UpdateProduct(int id, ProductDto productDto)
         {
@@ -256,6 +260,7 @@ namespace BestStoreApi.Controllers
 
         }
 
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id}")]
         public IActionResult Deleteproduct(int id) 
         {

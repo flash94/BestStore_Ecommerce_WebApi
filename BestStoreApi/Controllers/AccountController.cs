@@ -134,12 +134,154 @@ namespace BestStoreApi.Controllers
             return Ok(response);
         }
 
-        [Authorize]
-        [HttpGet("AuthorizeAuthenticatedUsers")]
-        public IActionResult AuthorizeAuthenticatedUsers()
+        [HttpPost("ForgotPassword")]
+        public IActionResult ForgotPassword(string email)
         {
-            return Ok("You are authorised");
+            var user = context.Users.FirstOrDefault(u => u.Email == email);
+            if(user == null)
+            {
+                return NotFound();
+            }
+
+            //delete any old password reset request
+            var oldPwdReset = context.PasswordResets.FirstOrDefault(r => r.Email == email);
+            if(oldPwdReset != null)
+            {
+                //delete old passwrod reser request
+                context.Remove(oldPwdReset);
+            }
+            // crete Password Reset Token
+            string token = Guid.NewGuid().ToString() + "-" + Guid.NewGuid().ToString();
+            var pwdReset = new PasswordReset()
+            {
+                Email = email,
+                Token = token,
+                CreatedAt = DateTime.Now,
+            };
+
+            context.PasswordResets.Add(pwdReset);
+            context.SaveChanges();
+
+            //send the password reset token by email to the user
+            return Ok(pwdReset);
         }
+
+        [HttpPost("ResetPassword")]
+        public IActionResult ResetPassword(string token, string password)
+        {
+            var pwdReset = context.PasswordResets.FirstOrDefault(r => r.Token == token);
+            if(pwdReset == null)
+            {
+                ModelState.AddModelError("Token", "Wrong or Expired Token");
+                return BadRequest(ModelState);
+
+            }
+
+            var user = context.Users.FirstOrDefault(u => u.Email == pwdReset.Email);
+            if(user == null)
+            {
+                ModelState.AddModelError("Token", "Wrong or Expired Token");
+                return BadRequest(ModelState);
+            }
+
+            //encrypt password
+            var passwordHasher = new PasswordHasher<User>();
+            string encryptedPassword = passwordHasher.HashPassword(new Models.User(), password);
+
+            //save the new encrypted password
+            user.Password = encryptedPassword;
+
+            //delete the token
+            context.PasswordResets.Remove(pwdReset);
+            context.SaveChanges();
+
+            return Ok();
+        }
+
+        [Authorize]
+        [HttpGet("Profile")]
+        public IActionResult GetProfile()
+        {
+            int id = JwtReader.GetUserId(User);
+            var user = context.Users.Find(id);
+            if(user == null)
+            {
+                return Unauthorized();
+            }
+
+            var userProfileDto = new UserProfileDto()
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Address = user.Address,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt
+            };
+
+            return Ok(userProfileDto);
+        }
+        [Authorize]
+        [HttpPut("UpdateProfile")]
+        public IActionResult Updateprofile(UserProfileUpdateDto userProfileUpdateDto)
+        {
+            int id = JwtReader.GetUserId(User);
+
+            var user = context.Users.Find(id);
+            if(user == null)
+            {
+                return Unauthorized();
+            }
+
+            //update user profile
+            user.FirstName = userProfileUpdateDto.FirstName;
+            user.LastName = userProfileUpdateDto.LastName;
+            user.Email = userProfileUpdateDto.Email;
+            user.Phone = userProfileUpdateDto.Phone;
+            user.Address = userProfileUpdateDto.Address;
+
+            context.SaveChanges();
+
+            var userProfileDto = new UserProfileDto()
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Address = user.Address,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt
+            };
+            return Ok(userProfileDto);
+
+
+        }
+
+        [Authorize]
+        [HttpPut("UpdatePassword")]
+        public IActionResult UpdatePassword(string password)
+        {
+            int id = JwtReader.GetUserId(User);
+            var user = context.Users.Find(id);
+            if(user == null)
+            {
+                return Unauthorized();
+            }
+
+            //encrypt password
+            var passwordhasher = new PasswordHasher<User>();
+            string encryptedPassword = passwordhasher.HashPassword(new User(), password);
+
+            //update the user password
+            user.Password = encryptedPassword;
+
+            context.SaveChanges();
+            return Ok();
+        }
+
         private string CreateJWToken(User user)
         {
             List<Claim> claims = new List<Claim>()
@@ -164,5 +306,6 @@ namespace BestStoreApi.Controllers
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
             return jwt;
         }
+
     }
 }

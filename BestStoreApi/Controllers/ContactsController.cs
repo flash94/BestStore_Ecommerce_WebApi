@@ -1,6 +1,7 @@
 ﻿using BestStoreApi.Models;
 using BestStoreApi.Models.DTO;
 using BestStoreApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ namespace BestStoreApi.Controllers
             return Ok(listSubjects);
         }
 
+        [Authorize(Roles = "admin")]
         [HttpGet]
         public IActionResult GetContacts(int? page)
         {
@@ -59,6 +61,7 @@ namespace BestStoreApi.Controllers
             return Ok(response);
         }
 
+        [Authorize(Roles = "admin")]
         [HttpGet("{id}")]
         public IActionResult GetContact(int id)
         {
@@ -99,7 +102,7 @@ namespace BestStoreApi.Controllers
             return Ok(contact);
         }
 
-        [HttpPut("{id}")]
+        /*[HttpPut("{id}")]
         public IActionResult UpdateContact(int id, ContactDto contactDto)
         {
             var _subject = context.Subjects.Find(contactDto.SubjectId);
@@ -125,7 +128,9 @@ namespace BestStoreApi.Controllers
             context.SaveChanges();
             return Ok(contact);
         }
+        */
 
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id}")]
         public IActionResult DeleteContact(int id)
         {
