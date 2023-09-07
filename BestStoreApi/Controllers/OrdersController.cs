@@ -39,7 +39,7 @@ namespace BestStoreApi.Controllers
             //read the orders
             var orders = query.ToList();
 
-            foreach(var order in orders)
+            foreach (var order in orders)
             {
                 // get rid of the object cycle
                 foreach (var item in order.OrderItems)
@@ -51,6 +51,44 @@ namespace BestStoreApi.Controllers
             }
 
             return Ok(orders);
+        }
+
+        [Authorize]
+        [HttpGet("{id}")]
+        public IActionResult GetOrder(int id)
+        {
+            int userId = JwtReader.GetUserId(User);
+            string role = context.Users.Find(userId)?.Role ?? ""; //JwtReader.GetUserRole(User);
+
+            Order? order = null;
+            if(role == "admin"){
+                order = context.Orders
+                    .Include(o => o.OrderItems).ThenInclude(oi => oi.Product)
+                    .FirstOrDefault(o => o.Id == id);
+            }
+            else
+            {
+                order = context.Orders.Include(o => o.User)
+                    .Include(o => o.OrderItems).ThenInclude(oi => oi.Product)
+                    .FirstOrDefault(o => o.Id == id && o.UserId == userId);
+            }
+
+            if(order == null)
+            {
+                return NotFound();
+            }
+
+            //get rid of the object cycle error
+            foreach (var item in order.OrderItems)
+            {
+                item.Order = null;
+            }
+
+            //hide the user password
+            order.User.Password = "";
+
+            return Ok(order);
+
         }
 
         [Authorize]
@@ -124,6 +162,68 @@ namespace BestStoreApi.Controllers
             return Ok(order);
             
 
+        }
+
+        [Authorize(Roles = "admin")]
+        [HttpPut("{id}")]
+        public IActionResult Updateorder(int id, string? paymentStatus, string? orderStatus)
+        {
+            if (paymentStatus == null && orderStatus == null)
+            {
+                //we have nothing to do
+                ModelState.AddModelError("UpdateOrder", "there is nothing to update");
+                return BadRequest(ModelState);
+
+            }
+
+            if(paymentStatus !=null && !OrderHelper.PaymentStatuses.Contains(paymentStatus))
+            {
+                //we have nothing to do
+                ModelState.AddModelError("UpdateOrder", "there is nothing to update");
+                return BadRequest(ModelState);
+            }
+
+            if (orderStatus != null && !OrderHelper.OrderStatuses.Contains(orderStatus))
+            {
+                //we have nothing to do
+                ModelState.AddModelError("UpdateOrder", "there is nothing to update");
+                return BadRequest(ModelState);
+            }
+
+            var order = context.Orders.Find(id);
+            if(order == null)
+            {
+                return NotFound();
+            }
+
+            if (paymentStatus != null)
+            {
+                order.PaymentStatus = paymentStatus;
+            }
+
+            if(orderStatus != null)
+            {
+                order.OrderStatus = orderStatus;
+            }
+
+            context.SaveChanges();
+            return Ok(order);
+        }
+
+        [Authorize(Roles = "admin")]
+        [HttpDelete("{id}")]
+        public IActionResult DeleteOrder(int id)
+        {
+            var order = context.Orders.Find(id);
+            if(order == null)
+            {
+                return NotFound();
+            }
+
+            context.Orders.Remove(order);
+            context.SaveChanges();
+
+            return Ok(order);
         }
     }
 }
